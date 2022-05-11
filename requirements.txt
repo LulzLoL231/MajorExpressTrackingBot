@@ -1,0 +1,4 @@
+aiohttp[speedups]  # I'm a SPEED~~
+aiogram
+aiosqlite
+pydantic
