@@ -12,7 +12,7 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "env": {
-                "BOT_TOKEN": "730400750:AAFp9tYK7ynwUREekxCoD705kf2hQiUYu3A",
+                "BOT_TOKEN": "",
                 "BOT_DEBUG": "1"
             }
         }
