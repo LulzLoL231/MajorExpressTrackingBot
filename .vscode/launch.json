@@ -1,0 +1,20 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug",
+            "type": "python",
+            "request": "launch",
+            "program": "C:\\Users\\lulz\\Documents\\python\\MajorExpressTracking\\start.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "env": {
+                "BOT_TOKEN": "730400750:AAFp9tYK7ynwUREekxCoD705kf2hQiUYu3A",
+                "BOT_DEBUG": "1"
+            }
+        }
+    ]
+}
