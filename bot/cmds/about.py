@@ -9,6 +9,7 @@ from ..runtime import bot, log, __version__
 
 
 CONTENT = '''Бот для отслеживания посылок Major Express.
+Есть поддержка Inline режима!
 
 Автор: @LulzLoL231
 Версия: {}
@@ -18,7 +19,5 @@ CONTENT = '''Бот для отслеживания посылок Major Express
 
 @bot.message_handler(commands=['about'])
 async def about_bot(msg: types.Message):
-    if msg.chat.id < 0:
-        return
     log.info(f'Called by {msg.chat.mention} ({msg.chat.id})')
     await msg.answer(CONTENT.format(__version__))

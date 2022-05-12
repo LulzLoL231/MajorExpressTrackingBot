@@ -15,18 +15,21 @@ from db import Database
 from majorapi import MEAPI
 
 
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 logging.basicConfig(
     format='[%(levelname)s] %(name)s (%(lineno)d) >> %(module)s.%(funcName)s: %(message)s',
     level=logging.DEBUG if os.environ.get('BOT_DEBUG', '') else logging.INFO
 )
-CMDS = [
+PrivateChatCmds = [
     BotCommand('/start', 'Запустить бота'),
     BotCommand('/set_tracking', 'Установить отслеживание'),
     BotCommand('/current_tracking', 'Текущее отслеживание'),
     BotCommand('/change_destination', 'Изменить город получателя'),
     BotCommand('/stop_tracking', 'Остановить отслеживание'),
     BotCommand('/settings', 'Настройки'),
+    BotCommand('/about', 'О боте.')
+]
+GroupChatCmds = [
     BotCommand('/about', 'О боте.')
 ]
 log = logging.getLogger('MajorExpressTrackingBot')
@@ -36,6 +39,6 @@ bot = Dispatcher(Bot(os.environ.get('BOT_TOKEN', ''), loop=loop, parse_mode='HTM
 db = Database()
 majorapi = MEAPI()
 
-loop.create_task(bot.bot.set_my_commands(CMDS, BotCommandScopeAllPrivateChats()))
-loop.create_task(bot.bot.set_my_commands([], BotCommandScopeAllGroupChats()))
+loop.create_task(bot.bot.set_my_commands(PrivateChatCmds, BotCommandScopeAllPrivateChats()))
+loop.create_task(bot.bot.set_my_commands(GroupChatCmds, BotCommandScopeAllGroupChats()))
 loop.create_task(db._create_tables())
