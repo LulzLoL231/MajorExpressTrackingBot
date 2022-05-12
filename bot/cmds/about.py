@@ -26,7 +26,7 @@ Repository: <a href="https://github.com/LulzLoL231/MajorExpressTrackingBot">GitH
 
 @bot.message_handler(commands=['about'])
 async def about_bot(msg: types.Message):
-    log.info(f'Called by {msg.from_user.mention} ({msg.from_user.id})')
+    log.info(f'Called by {msg.chat.mention} ({msg.chat.id})')
     if msg.from_user.language_code == 'ru':
         cnt = CONTENT['ru'].format(__version__)
     elif msg.from_user.language_code == 'en':
