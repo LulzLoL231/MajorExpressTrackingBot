@@ -16,7 +16,7 @@ from db import Database
 from majorapi import MEAPI
 
 
-__version__ = '1.1'
+__version__ = '1.2'
 logging.basicConfig(
     format='[%(levelname)s] %(name)s (%(lineno)d) >> %(module)s.%(funcName)s: %(message)s',
     level=logging.DEBUG if os.environ.get('BOT_DEBUG', '') else logging.INFO

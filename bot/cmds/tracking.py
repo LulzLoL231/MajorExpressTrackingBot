@@ -75,19 +75,22 @@ async def set_tracking_finish(msg: types.Message, state: FSMContext):
     log.info(f'Called by {msg.chat.mention} ({msg.chat.id})')
     if msg.text.isdigit():
         await state.finish()
-        if not await db.is_already_tracking(msg.chat.id, msg.text):
-            await db.add_package(
-                msg.chat.id, msg.text
-            )
-            cnt = 'Посылка теперь отслеживается!'
+        if majorapi.get_tracing(msg.text):
+            if not await db.is_already_tracking(msg.chat.id, msg.text):
+                await db.add_package(
+                    msg.chat.id, msg.text
+                )
+                cnt = 'Посылка теперь отслеживается!'
+            else:
+                cnt = 'Посылка уже отслеживается.'
+            key = types.InlineKeyboardMarkup()
+            key.add(types.InlineKeyboardButton(
+                f'Посылка #{msg.text}',
+                callback_data=f'package#{msg.text}'
+            ))
+            await msg.answer(cnt, reply_markup=key)
         else:
-            cnt = 'Посылка уже отслеживается.'
-        key = types.InlineKeyboardMarkup()
-        key.add(types.InlineKeyboardButton(
-            f'Посылка #{msg.text}',
-            callback_data=f'package#{msg.text}'
-        ))
-        await msg.answer(cnt, reply_markup=key)
+            await msg.answer(f'Не могу получить данные о посылке #{msg.text}')
     else:
         await msg.answer('Код отслеживание может быть <b>только цифровым</b>!')
 
