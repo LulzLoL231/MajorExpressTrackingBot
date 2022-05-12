@@ -16,7 +16,7 @@ from db import Database
 from majorapi import MEAPI
 
 
-__version__ = '1.0'
+__version__ = '1.1'
 logging.basicConfig(
     format='[%(levelname)s] %(name)s (%(lineno)d) >> %(module)s.%(funcName)s: %(message)s',
     level=logging.DEBUG if os.environ.get('BOT_DEBUG', '') else logging.INFO
@@ -72,7 +72,7 @@ async def notify():
     await sleep(3600)
 
 
-loop.create_task(bot.bot.set_my_commands(PrivateChatCmds, BotCommandScopeAllPrivateChats()))
-loop.create_task(bot.bot.set_my_commands(GroupChatCmds, BotCommandScopeAllGroupChats()))
-loop.create_task(db._create_tables())
+loop.run_until_complete(bot.bot.set_my_commands(PrivateChatCmds, BotCommandScopeAllPrivateChats()))
+loop.run_until_complete(bot.bot.set_my_commands(GroupChatCmds, BotCommandScopeAllGroupChats()))
+loop.run_until_complete(db._create_tables())
 loop.create_task(notify())
