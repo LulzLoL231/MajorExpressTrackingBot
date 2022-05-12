@@ -17,8 +17,8 @@ async def start(msg: types.Message, state: FSMContext):
     if state:
         log.debug(f'Canceling state: {state.__dict__}')
         await state.finish()
-    cur_track = await db.get_package_by_user_id(msg.chat.id)
-    if not cur_track:
+    cur_tracks = await db.get_all_packages_for_user(msg.chat.id)
+    if not cur_tracks:
         key = types.InlineKeyboardMarkup()
         key.add(types.InlineKeyboardButton(
             'Добавить посылку',
@@ -26,10 +26,11 @@ async def start(msg: types.Message, state: FSMContext):
         ))
         cnt = f'Привет, {msg.chat.first_name}!\nДавай начнём отслеживание!'
     else:
-        key = types.InlineKeyboardMarkup()
-        key.add(types.InlineKeyboardButton(
-            f'Посылка #{cur_track.wbNumber}',
-            callback_data='current_tracking'
-        ))
-        cnt = f'Привет, {msg.chat.first_name}!\nМы ещё отслеживаем твою посылку.'
+        key = types.InlineKeyboardMarkup(1)
+        for pack in cur_tracks:
+            key.add(types.InlineKeyboardButton(
+                f'Посылка #{pack.wbNumber}',
+                callback_data=f'package#{pack.wbNumber}'
+            ))
+        cnt = f'Привет, {msg.chat.first_name}!\nКолличество отслеживаемых посылок - {len(cur_tracks)}'
     await msg.answer(cnt, reply_markup=key)

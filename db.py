@@ -63,19 +63,19 @@ class Database:
             await db.commit()
         return True
 
-    async def get_package_by_user_id(self, user_id: int) -> Optional[Package]:
-        '''Returns package from DB by his user_id.
+    async def get_package_by_wbNumber(self, wbNumber: int) -> Optional[Package]:
+        '''Returns package from DB by his wbNumber.
 
         Args:
-            user_id (int): Telegram user_id.
+            wbNumber (str): Major Express Tracking code.
 
         Returns:
             Optional[Package]: Package info or None.
         '''
-        log.debug(f'Called with args ({user_id})')
+        log.debug(f'Called with args ({wbNumber})')
         async with aiosqlite.connect(self.db_name) as db:
             db.row_factory = aiosqlite.Row
-            async with db.execute('SELECT * FROM packages WHERE user_id=?', (user_id,)) as cur:
+            async with db.execute('SELECT * FROM packages WHERE wbNumber=?', (wbNumber,)) as cur:
                 fetch = await cur.fetchone()
                 if fetch:
                     return Package(**dict(fetch))
@@ -123,3 +123,33 @@ class Database:
             db.row_factory = aiosqlite.Row
             async with db.execute('SELECT * FROM packages') as cur:
                 return [Package(**dict(i)) for i in (await cur.fetchall())]
+
+    async def get_all_packages_for_user(self, user_id: int) -> list[Package]:
+        '''Returns all paclages for user.
+
+        Args:
+            user_id (int): Telegram user_id.
+
+        Returns:
+            list[Package]: Array of Packages.
+        '''
+        log.debug(f'Called with args ({user_id})')
+        async with aiosqlite.connect(self.db_name) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute('SELECT * FROM packages WHERE user_id=?', (user_id,)) as cur:
+                return [Package(**dict(i)) for i in (await cur.fetchall())]
+
+    async def is_already_tracking(self, user_id: int, wbNumber: str) -> bool:
+        '''Is package already tracking by user?
+
+        Args:
+            user_id (int): Telegram user_id.
+            wbNumber (str): Major Express Tracking code.
+
+        Returns:
+            bool: Boolean.
+        '''
+        log.debug(f'Called with args ({user_id}, {wbNumber})')
+        async with aiosqlite.connect(self.db_name) as db:
+            async with db.execute('SELECT wbNumber FROM packages WHERE user_id=? AND wbNumber=?', (user_id, wbNumber)) as cur:
+                return bool((await cur.fetchone()))

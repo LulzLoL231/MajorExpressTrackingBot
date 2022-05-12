@@ -49,7 +49,8 @@ def parse_events(array: list) -> str:
 
 @bot.callback_query_handler(lambda q: q.data == 'set_tracking', state='*')
 async def query_set_tracking(query: types.CallbackQuery, state: FSMContext):
-    log.info(f'Called by {query.message.chat.mention} ({query.message.chat.id})')
+    log.info(
+        f'Called by {query.message.chat.mention} ({query.message.chat.id})')
     await query.answer()
     await query.message.delete()
     await set_tracking(query.message, state)
@@ -63,18 +64,8 @@ async def set_tracking(msg: types.Message, state: FSMContext):
     if state:
         log.debug(f'Canceling state: {state.__dict__}')
         await state.finish()
-    cur_track = await db.get_package_by_user_id(msg.chat.id)
-    if not cur_track:
-        await SetTrackingState.code.set()
-        await msg.answer('Введите код отслеживания')
-    else:
-        key = types.InlineKeyboardMarkup()
-        key.add(types.InlineKeyboardButton(
-            f'Посылка #{cur_track.wbNumber}',
-            callback_data='current_tracking'
-        ))
-        cnt = 'Вы уже отслеживаете посылку.'
-        await msg.answer(cnt, reply_markup=key)
+    await SetTrackingState.code.set()
+    await msg.answer('Введите код отслеживания')
 
 
 @bot.message_handler(content_types=types.ContentTypes.TEXT, state=SetTrackingState.code)
@@ -84,31 +75,65 @@ async def set_tracking_finish(msg: types.Message, state: FSMContext):
     log.info(f'Called by {msg.chat.mention} ({msg.chat.id})')
     if msg.text.isdigit():
         await state.finish()
-        await db.add_package(
-            msg.chat.id, msg.text
-        )
+        if not await db.is_already_tracking(msg.chat.id, msg.text):
+            await db.add_package(
+                msg.chat.id, msg.text
+            )
+            cnt = 'Посылка теперь отслеживается!'
+        else:
+            cnt = 'Посылка уже отслеживается.'
         key = types.InlineKeyboardMarkup()
         key.add(types.InlineKeyboardButton(
             f'Посылка #{msg.text}',
-            callback_data='current_tracking'
+            callback_data=f'package#{msg.text}'
         ))
-        await state.finish()
-        cnt = 'Посылка теперь отслеживается!'
         await msg.answer(cnt, reply_markup=key)
     else:
         await msg.answer('Код отслеживание может быть <b>только цифровым</b>!')
 
 
-@bot.callback_query_handler(lambda q: q.data == 'current_tracking', state='*')
-async def query_current_tracking(query: types.CallbackQuery, state: FSMContext):
-    log.info(f'Called by {query.message.chat.mention} ({query.message.chat.id})')
+@bot.callback_query_handler(lambda q: q.data == 'current_trackings', state='*')
+async def query_current_trackings(query: types.CallbackQuery, state: FSMContext):
+    log.info(
+        f'Called by {query.message.chat.mention} ({query.message.chat.id})')
     await query.answer()
     await query.message.delete()
-    await current_tracking(query.message, state)
+    await current_trackings(query.message, state)
 
 
-@bot.message_handler(commands='current_tracking', state='*')
-async def current_tracking(msg: types.Message, state: FSMContext):
+@bot.callback_query_handler(lambda q: q.data.startswith('package'), state='*')
+async def show_package(query: types.CallbackQuery, state: FSMContext):
+    log.info(
+        f'Called by {query.message.chat.mention} ({query.message.chat.id})')
+    if state:
+        await state.finish()
+    code = query.data.split('#')[1]
+    me_data = await majorapi.get_tracing(code)
+    if me_data:
+        cnt = f'<b>Посылка #{me_data["wbNumber"]}</b>\n\n'
+        cnt += f'<b>Примерная дата доставки:</b> <code>{me_data["calcDeliveryDate"]}</code>\n'
+        cnt += f'<b>Текущий статус:</b> {me_data["currentEvent"]}\n\n'
+        cnt += '<b>История отслеживания:</b>\n'
+        cnt += parse_events(me_data['events'])
+        key = types.InlineKeyboardMarkup(1)
+        key.add(types.InlineKeyboardButton(
+            'Остановить отслеживание',
+            callback_data=f'stop_tracking#{code}'
+        ))
+        key.add(types.InlineKeyboardButton(
+            'Назад',
+            callback_data='current_trackings'
+        ))
+        await query.answer()
+        await query.message.edit_text(cnt, reply_markup=key)
+    else:
+        log.warning(f'Can\'t fetch package info for #{code}!')
+        await query.answer(f'Не удалось получить данные о посылке #{code}')
+        await query.message.delete()
+
+
+@bot.message_handler(commands='current_trackings', state='*')
+async def current_trackings(msg: types.Message, state: FSMContext):
     if msg.chat.id < 0:
         return
     log.info(f'Called by {msg.chat.mention} ({msg.chat.id})')
@@ -116,8 +141,8 @@ async def current_tracking(msg: types.Message, state: FSMContext):
     if state:
         log.debug(f'Canceling state: {state.__dict__}')
         await state.finish()
-    cur_track = await db.get_package_by_user_id(msg.chat.id)
-    if not cur_track:
+    cur_tracks = await db.get_all_packages_for_user(msg.chat.id)
+    if not cur_tracks:
         key = types.InlineKeyboardMarkup()
         key.add(types.InlineKeyboardButton(
             'Добавить посылку',
@@ -126,39 +151,38 @@ async def current_tracking(msg: types.Message, state: FSMContext):
         cnt = 'Сейчас вы не отслеживаете ни одну посылку.\nДобавьте новую!'
         await msg.answer(cnt, reply_markup=key)
     else:
-        me_data = await majorapi.get_tracing(cur_track.wbNumber,
-                                             cur_track.delivType)
-        if me_data:
-            cnt = f'<b>Посылка #{cur_track.wbNumber}</b>\n\n'
-            cnt += f'<b>Примерная дата доставки:</b> <code>{me_data["calcDeliveryDate"]}</code>\n'
-            cnt += f'<b>Текущий статус:</b> {me_data["currentEvent"]}\n\n'
-            cnt += '<b>История отслеживания:</b>\n'
-            cnt += parse_events(me_data['events'])
-            await msg.answer(cnt)
-        else:
-            await msg.answer('<b>Ошибка: </b> не удалось получить данные о отслеживании.')
+        cnt = 'Текущие отслеживания:'
+        key = types.InlineKeyboardMarkup(1)
+        for pack in cur_tracks:
+            key.add(types.InlineKeyboardButton(
+                f'Посылка #{pack.wbNumber}',
+                callback_data=f'package#{pack.wbNumber}'
+            ))
+        key.add(types.InlineKeyboardButton(
+            'Добавить посылку',
+            callback_data='set_tracking'
+        ))
+        await msg.answer(cnt, reply_markup=key)
 
 
-@bot.message_handler(commands='stop_tracking', state='*')
-async def stop_tracking(msg: types.Message, state: FSMContext):
+@bot.callback_query_handler(lambda q: q.data.startswith('stop_tracking'), state='*')
+async def query_stop_tracking(query: types.CallbackQuery, state: FSMContext):
+    log.info(f'Called by {query.message.chat.mention} ({query.message.chat.id})')
+    msg = query.message
+    code = query.data.split('#')[1]
     if msg.chat.id < 0:
         return
-    log.info(f'Called by {msg.chat.mention} ({msg.chat.id})')
     if state:
         log.debug(f'Canceling state: {state.__dict__}')
         await state.finish()
-    cur_track = await db.get_package_by_user_id(msg.chat.id)
-    if not cur_track:
-        key = types.InlineKeyboardMarkup()
-        key.add(types.InlineKeyboardButton(
-            'Добавить посылку',
-            callback_data='set_tracking'
-        ))
-        cnt = 'Сейчас вы не отслеживаете ни одну посылку.\nДобавьте новую!'
-        await msg.answer(cnt, reply_markup=key)
+    pack = await db.get_package_by_wbNumber(code)
+    if not pack:
+        log.warning(f'Can\'t fetch data about Package #{code} from DB!')
+        await query.answer(f'Не удалось найти посылку #{code}!')
+        await msg.delete()
     else:
-        await db.delete_package(cur_track.wbNumber)
-        await msg.answer(f'Отслеживание посылки #{cur_track.wbNumber} - <b>остановлено</b>.')
+        await db.delete_package(pack.wbNumber)
+        await msg.edit_text(f'Отслеживание посылки #{pack.wbNumber} - <b>остановлено</b>.')
 
 
 @bot.inline_handler(lambda q: len(q.query) >= 5)

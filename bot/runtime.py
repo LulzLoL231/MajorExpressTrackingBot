@@ -16,7 +16,7 @@ from db import Database
 from majorapi import MEAPI
 
 
-__version__ = '0.3.1'
+__version__ = '1.0'
 logging.basicConfig(
     format='[%(levelname)s] %(name)s (%(lineno)d) >> %(module)s.%(funcName)s: %(message)s',
     level=logging.DEBUG if os.environ.get('BOT_DEBUG', '') else logging.INFO
@@ -24,10 +24,7 @@ logging.basicConfig(
 PrivateChatCmds = [
     BotCommand('/start', 'Запустить бота'),
     BotCommand('/set_tracking', 'Установить отслеживание'),
-    BotCommand('/current_tracking', 'Текущее отслеживание'),
-    BotCommand('/change_destination', 'Изменить город получателя'),
-    BotCommand('/stop_tracking', 'Остановить отслеживание'),
-    BotCommand('/settings', 'Настройки'),
+    BotCommand('/current_trackings', 'Текущие отслеживания'),
     BotCommand('/about', 'О боте.')
 ]
 GroupChatCmds = [
