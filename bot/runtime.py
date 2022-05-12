@@ -8,14 +8,14 @@ import logging
 from asyncio import get_event_loop
 
 from aiogram import Bot, Dispatcher
-from aiogram.types import BotCommand, BotCommandScopeAllPrivateChats
+from aiogram.types import BotCommand, BotCommandScopeAllPrivateChats, BotCommandScopeAllGroupChats
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
 from db import Database
 from majorapi import MEAPI
 
 
-__version__ = '0.2'
+__version__ = '0.2.1'
 logging.basicConfig(
     format='[%(levelname)s] %(name)s (%(lineno)d) >> %(module)s.%(funcName)s: %(message)s',
     level=logging.DEBUG if os.environ.get('BOT_DEBUG', '') else logging.INFO
@@ -37,4 +37,5 @@ db = Database()
 majorapi = MEAPI()
 
 loop.create_task(bot.bot.set_my_commands(CMDS, BotCommandScopeAllPrivateChats()))
+loop.create_task(bot.bot.set_my_commands([], BotCommandScopeAllGroupChats()))
 loop.create_task(db._create_tables())
