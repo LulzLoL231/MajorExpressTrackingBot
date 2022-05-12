@@ -62,6 +62,8 @@ async def query_set_tracking(query: types.CallbackQuery, state: FSMContext):
 
 @bot.message_handler(commands=['set_tracking'], state='*')
 async def set_tracking(msg: types.Message, state: FSMContext):
+    if msg.chat.id < 0:
+        return
     log.info(f'Called by {msg.chat.mention} ({msg.chat.id})')
     if state:
         log.debug(f'Canceling state: {state.__dict__}')
@@ -82,6 +84,8 @@ async def set_tracking(msg: types.Message, state: FSMContext):
 
 @bot.message_handler(content_types=types.ContentTypes.TEXT, state=SetTrackingState.code)
 async def set_tracking_city(msg: types.Message, state: FSMContext):
+    if msg.chat.id < 0:
+        return
     log.info(f'Called by {msg.chat.mention} ({msg.chat.id})')
     if not msg.text.isdigit():
         await msg.answer('Код отслеживания может быть <b>только</b> цифровым!')
@@ -93,6 +97,8 @@ async def set_tracking_city(msg: types.Message, state: FSMContext):
 
 @bot.message_handler(content_types=types.ContentTypes.TEXT, state=SetTrackingState.city)
 async def set_tracking_finish(msg: types.Message, state: FSMContext):
+    if msg.chat.id < 0:
+        return
     log.info(f'Called by {msg.chat.mention} ({msg.chat.id})')
     code = (await state.get_data()).get('code', '')
     if code:
@@ -130,6 +136,8 @@ async def query_current_tracking(query: types.CallbackQuery, state: FSMContext):
 
 @bot.message_handler(commands='current_tracking', state='*')
 async def current_tracking(msg: types.Message, state: FSMContext):
+    if msg.chat.id < 0:
+        return
     log.info(f'Called by {msg.chat.mention} ({msg.chat.id})')
     await msg.answer_chat_action(types.ChatActions.TYPING)
     if state:
@@ -161,6 +169,8 @@ async def current_tracking(msg: types.Message, state: FSMContext):
 
 @bot.message_handler(commands='change_destination', state='*')
 async def change_destination(msg: types.Message, state: FSMContext):
+    if msg.chat.id < 0:
+        return
     log.info(f'Called by {msg.chat.mention} ({msg.chat.id})')
     if state:
         log.debug(f'Canceling state: {state.__dict__}')
@@ -181,6 +191,8 @@ async def change_destination(msg: types.Message, state: FSMContext):
 
 @bot.message_handler(content_types=types.ContentTypes.TEXT, state=ChangeDestCityState.city)
 async def change_destination_finish(msg: types.Message, state: FSMContext):
+    if msg.chat.id < 0:
+        return
     log.info(f'Called by {msg.chat.mention} ({msg.chat.id})')
     await state.finish()
     cur_track = await db.get_package_by_user_id(msg.chat.id)
@@ -206,6 +218,8 @@ async def change_destination_finish(msg: types.Message, state: FSMContext):
 
 @bot.message_handler(commands='stop_tracking', state='*')
 async def stop_tracking(msg: types.Message, state: FSMContext):
+    if msg.chat.id < 0:
+        return
     log.info(f'Called by {msg.chat.mention} ({msg.chat.id})')
     if state:
         log.debug(f'Canceling state: {state.__dict__}')
@@ -222,3 +236,24 @@ async def stop_tracking(msg: types.Message, state: FSMContext):
     else:
         await db.delete_package(cur_track.wbNumber)
         await msg.answer(f'Отслеживание посылки #{cur_track.wbNumber} - <b>остановлено</b>.')
+
+
+@bot.inline_handler(lambda q: len(q.query) >= 5)
+async def get_tracing(query: types.InlineQuery):
+    log.info(f'Called with query: {query}')
+    me_data = await majorapi.get_tracing(query.query)
+    if me_data:
+        cnt = f'<b>Посылка #{me_data["wbNumber"]}</b>\n\n'
+        cnt += f'<b>Примерная дата доставки:</b> <code>{me_data["calcDeliveryDate"]}</code>\n'
+        cnt += f'<b>Текущий статус:</b> {me_data["currentEvent"]}\n\n'
+        cnt += '<b>История отслеживания:</b>\n'
+        cnt += parse_events(me_data['events'])
+        query_answer = [
+            types.InlineQueryResultArticle(
+                id=0, title=f'Посылка #{me_data["wbNumber"]}',
+                input_message_content=types.InputTextMessageContent(cnt)
+            )
+        ]
+    else:
+        query_answer = []
+    await query.answer(query_answer, cache_time=60, is_personal=True)

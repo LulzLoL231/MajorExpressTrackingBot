@@ -11,6 +11,8 @@ from ..runtime import bot, log, db
 
 @bot.message_handler(commands=['start'], state='*')
 async def start(msg: types.Message, state: FSMContext):
+    if msg.chat.id < 0:
+        return
     log.info(f'Called by {msg.chat.mention} ({msg.chat.id})')
     if state:
         log.debug(f'Canceling state: {state.__dict__}')

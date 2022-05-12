@@ -18,5 +18,7 @@ CONTENT = '''Бот для отслеживания посылок Major Express
 
 @bot.message_handler(commands=['about'])
 async def about_bot(msg: types.Message):
+    if msg.chat.id < 0:
+        return
     log.info(f'Called by {msg.chat.mention} ({msg.chat.id})')
     await msg.answer(CONTENT.format(__version__))
