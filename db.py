@@ -4,7 +4,7 @@
 #  Created by LulzLoL231 at 12/5/22
 #
 import logging
-from typing import Literal
+from typing import Literal, Optional
 
 import aiosqlite
 from pydantic import BaseModel
@@ -66,14 +66,14 @@ class Database:
             await db.commit()
         return True
 
-    async def get_package_by_user_id(self, user_id: int) -> Package | None:
+    async def get_package_by_user_id(self, user_id: int) -> Optional[Package]:
         '''Returns package from DB by his user_id.
 
         Args:
             user_id (int): Telegram user_id.
 
         Returns:
-            Package | None: Package info or None.
+            Optional[Package]: Package info or None.
         '''
         log.debug(f'Called with args ({user_id})')
         async with aiosqlite.connect(self.db_name) as db:

@@ -4,6 +4,7 @@
 #  Created by LulzLoL231 at 12/5/22
 #
 import logging
+from typing import Optional
 
 import aiohttp
 
@@ -23,8 +24,8 @@ class MEAPI:
     async def _make_request(self,
                             method: str,
                             url: str,
-                            data: str | None = None,
-                            headers: dict | None = None) -> dict | None:
+                            data: Optional[str] = None,
+                            headers: Optional[dict] = None) -> Optional[dict]:
         log.debug(f'Called with args ({method}, {url}, {data}, {headers})')
         if not headers:
             headers = self.DEFAULT_HEADERS
@@ -39,7 +40,7 @@ class MEAPI:
                     log.debug(f'API Answer: {(await resp.text())}')
                     return None
 
-    async def get_tracing(self, wbNumber: str, delivType: str = 'false') -> dict | None:
+    async def get_tracing(self, wbNumber: str, delivType: str = 'false') -> Optional[dict]:
         '''Возвращает информацию об отслеживании посылки.
 
         Args:
@@ -47,7 +48,7 @@ class MEAPI:
             delivType (str, optional): Тип доставки. Defaults to 'false'.
 
         Returns:
-            dict | None: Информация об отслеживании, или ничего.
+            Optional[dict]: Информация об отслеживании, или ничего.
 
         Note:
             delivType остаётся для меня некой загадкой, но не думаю что его надо меня с дефолтного "false".
