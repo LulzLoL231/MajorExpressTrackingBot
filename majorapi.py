@@ -61,7 +61,7 @@ class MEAPI:
                                         self.TRACKING_URL,
                                         query, headers)
         if resp:
-            return resp
-        else:
-            log.error('Can\'t fetch tracking info!')
-            return None
+            if resp.get('wbNumber', ''):
+                return resp
+        log.error('Can\'t fetch tracking info!')
+        return None

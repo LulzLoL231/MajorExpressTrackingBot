@@ -4,10 +4,11 @@
 #  Created by LulzLoL231 at 12/5/22
 #
 import os
+import sys
 import logging
-from asyncio import get_event_loop
+from asyncio import get_event_loop, sleep
 
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, types
 from aiogram.types import BotCommand, BotCommandScopeAllPrivateChats, BotCommandScopeAllGroupChats
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
@@ -39,6 +40,42 @@ bot = Dispatcher(Bot(os.environ.get('BOT_TOKEN', ''), loop=loop, parse_mode='HTM
 db = Database()
 majorapi = MEAPI()
 
+
+async def notify():
+    '''Checking for last event city == Package.city, and notify is True.
+    '''
+    log.info('Start checking.')
+    packs = await db.get_all_packages()
+    for pack in packs:
+        me_data = await majorapi.get_tracing(pack.wbNumber)
+        if me_data:
+            last_event = me_data['events'][::-1][0]
+            if last_event["eventId"] != pack.last_eventId:
+                if pack.last_eventId == 0:
+                    # Ignoring last event, because package added to db recently.
+                    await db.change_last_eventId(pack.wbNumber, last_event['eventId'])
+                else:
+                    cnt = f'Новое событие посылки #{pack.wbNumber}!\n\n'
+                    cnt += f'{last_event["eventDate"]} {last_event["eventTime"]} - {last_event["city"]} - {last_event["event"]}'
+                    key = types.InlineKeyboardMarkup()
+                    key.add(types.InlineKeyboardButton(
+                        f'Посылка #{pack.wbNumber}',
+                        callback_data='current_tracking'
+                    ))
+                    try:
+                        await bot.bot.send_message(
+                            pack.user_id, cnt, reply_markup=key
+                        )
+                    except Exception:
+                        log.exception(f'Can\'t send message to user #{pack.user_id}', exc_info=sys.exc_info())
+            else:
+                continue
+        else:
+            log.warning(f'Can\'t fetch package info for #{pack.wbNumber}!')
+    await sleep(3600)
+
+
 loop.create_task(bot.bot.set_my_commands(PrivateChatCmds, BotCommandScopeAllPrivateChats()))
 loop.create_task(bot.bot.set_my_commands(GroupChatCmds, BotCommandScopeAllGroupChats()))
 loop.create_task(db._create_tables())
+loop.create_task(notify())

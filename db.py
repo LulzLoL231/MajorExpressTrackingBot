@@ -130,3 +130,15 @@ class Database:
             await db.execute('DELETE FROM packages WHERE wbNumber=?', (wbNumber,))
             await db.commit()
         return True
+
+    async def get_all_packages(self) -> list[Package]:
+        '''Returns all packages.
+
+        Returns:
+            list[Package]: Array of Package.
+        '''
+        log.debug('Called!')
+        async with aiosqlite.connect(self.db_name) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute('SELECT * FROM packages') as cur:
+                return [Package(**dict(i)) for i in (await cur.fetchall())]
