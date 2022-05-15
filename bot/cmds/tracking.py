@@ -75,7 +75,7 @@ async def set_tracking_finish(msg: types.Message, state: FSMContext):
     log.info(f'Called by {msg.chat.mention} ({msg.chat.id})')
     if msg.text.isdigit():
         await state.finish()
-        if majorapi.get_tracing(msg.text):
+        if (await majorapi.get_tracing(msg.text)):
             if not await db.is_already_tracking(msg.chat.id, msg.text):
                 await db.add_package(
                     msg.chat.id, msg.text
@@ -113,7 +113,7 @@ async def show_package(query: types.CallbackQuery, state: FSMContext):
     code = query.data.split('#')[1]
     me_data = await majorapi.get_tracing(code)
     if me_data:
-        cnt = f'<b>Посылка #{me_data["wbNumber"]}</b>\n\n'
+        cnt = f'<b>Посылка #<code>{me_data["wbNumber"]}</code></b>\n\n'
         cnt += f'<b>Примерная дата доставки:</b> <code>{me_data["calcDeliveryDate"]}</code>\n'
         cnt += f'<b>Текущий статус:</b> {me_data["currentEvent"]}\n\n'
         cnt += '<b>История отслеживания:</b>\n'
